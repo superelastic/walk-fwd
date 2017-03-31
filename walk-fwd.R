@@ -7,7 +7,7 @@ library(iterpc)
 #getSymbols(c("SPY", "TLT"), from="2009-01-01")
 #returns <- merge(Return.calculate(Ad(SPY)), Return.calculate(Ad(TLT)), join='inner')
 
-getSymbols(c("CSD", "EDV", "VNQ"), from="2009-01-01")
+getSymbols(c("CSD", "EDV", "VNQ"), from="2009-01-01", to="2017-03-28")
 #returns <- merge(Return.calculate(Ad(CSD)), Return.calculate(Ad(EDV)), join='inner')
 #returns <- merge(returns, Return.calculate(Ad(VNQ)), join='inner')
 
