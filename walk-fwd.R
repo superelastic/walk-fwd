@@ -4,50 +4,32 @@ require(quantmod)
 require(PerformanceAnalytics)
 library(partitions)
 library(iterpc)
-#getSymbols(c("SPY", "TLT"), from="2009-01-01")
-#returns <- merge(Return.calculate(Ad(SPY)), Return.calculate(Ad(TLT)), join='inner')
 
-getSymbols(c("CSD", "EDV", "VNQ"), from="2009-01-01", to="2017-03-28")
-#returns <- merge(Return.calculate(Ad(CSD)), Return.calculate(Ad(EDV)), join='inner')
-#returns <- merge(returns, Return.calculate(Ad(VNQ)), join='inner')
+getSymbols(c("CWB","JNK","TLT","PCY"), from="2009-08-03", to="2017-03-30")
+returns <- merge(Return.calculate(Ad(CWB)), Return.calculate(Ad(JNK)), join='inner')
+returns <- merge(returns, Return.calculate(Ad(TLT)), join='inner')
+returns <- merge(returns, Return.calculate(Ad(PCY)), join='inner')
 
-df <- read.csv("C:/Users/Russ Fischer/Documents/R/my-projects/walk-forward-kipnis/keating_microcap_returns.csv", header=TRUE)
-returns <- merge(Return.calculate(Ad(CSD)), Return.calculate(Ad(EDV)), join='inner')
-returns <- merge(returns, Return.calculate(Ad(VNQ)), join='inner')
-returns <- merge(returns, (df$Return), join='inner')
+#getSymbols(c("CSD", "VNQ"), from="2009-08-03", to="2017-03-30")
+#df <- read.csv("C:/Users/Russ Fischer/Documents/R/my-projects/walk-fwd/rodenbach_returns.csv", header=TRUE)
+#df2 <- read.csv("C:/Users/Russ Fischer/Documents/R/my-projects/walk-fwd/bondStrat.csv", header=TRUE)
+#returns <- merge(Return.calculate(Ad(CSD)), Return.calculate(Ad(VNQ)), join='inner')
+#returns <- merge(returns, (df$Return), join='inner')
+#returns <- merge(returns, (df2$Return), join='inner')
 
 returns <- returns[-1,]
 configs <- list()
-#B = matrix(
-#  c(0,0,0,0,0,0,0.2,0.2,0.2,0.2,0.2,0.4,0.4,0.4,0.4,0.6,0.6,0.6,0.8,0.8,1,0,0.2,0.4,0.6,0.8,1,0,0.2,0.4,0.6,0.8,0,0.2,0.4,0.6,0,0.2,0.4,0,0.2,0,1,0.8,0.6,0.4,0.2,0,0.8,0.6,0.4,0.2,0,0.6,0.4,0.2,0,0.4,0.2,0,0.2,0,0)
-#  ,
-#  nrow=21,
-#  ncol=3)
 
 C = t(restrictedparts(10,4))/10
 B <- do.call(rbind, lapply(1:nrow(C),function(i) getall(iterpc(table(C[i,]), order=T))))
-# CSD EDV BND IVV MUB IYR IGOV
 
 for(i in 1:286) {
-  ##  cat(B[i,1],", ")
-  ##  cat(B[i,2],", ")
-  ##  cat(B[i,3],"\n")
-  #  weightCSD <- B[i,1]
-  #  weightEDV <- B[i,2]
-  #  weightVMNFX <- B[i,3]
-  #  config <- Return.portfolio(R = returns, weights=c(weightCSD, weightEDV, weightVMNFX), rebalance_on = "months")
-  #  configs[[i]] <- config
-  weightCSD <- B[i,1]
-  weightEDV <- B[i,2]
-  weightVNQ <- B[i,3]
-  weightROD <- B[i,4]
-  config <- Return.portfolio(R = returns, weights=c(weightCSD,weightEDV,weightVNQ,weightROD), rebalance_on = "months")
+  weight_1 <- B[i,1]
+  weight_2 <- B[i,2]
+  weight_3 <- B[i,3]
+  weight_4 <- B[i,4]
+  config <- Return.portfolio(R = returns, weights=c(weight_1,weight_2,weight_3,weight_4), rebalance_on = "months")
   configs[[i]] <- config  
-  
-  #  weightSPY <- (i-1)*.05
-  #  weightTLT <- 1-weightSPY
-  #  config <- Return.portfolio(R = returns, weights=c(weightSPY, weightTLT), rebalance_on = "months")
-  #  configs[[i]] <- config
 }
 configs <- do.call(cbind, configs)
 cumRets <- cumprod(1+configs)
@@ -75,14 +57,14 @@ configs$zeroes <- 0
 # calculate performance
 stratRets <- Return.portfolio(R = configs, weights = weights)
 rbind(table.AnnualizedReturns(stratRets), maxDrawdown(stratRets))
-charts.PerformanceSummary(stratRets[-600:-2051,], ylog=TRUE)
+charts.PerformanceSummary(stratRets[-1:-1200,], ylog=TRUE)
 
 # print perf stats
 rbind(table.AnnualizedReturns(stratRets), maxDrawdown(stratRets))
 
 # compare perf to SPY TLT alone
 stratAndComponents <- merge(returns, stratRets, join='inner')
-charts.PerformanceSummary(stratAndComponents[-600:-2051,], ylog=TRUE)
+charts.PerformanceSummary(stratAndComponents[-1:-1200,], ylog=TRUE)
 rbind(table.AnnualizedReturns(stratAndComponents), maxDrawdown(stratAndComponents))
 
 apply.yearly(stratAndComponents, Return.cumulative)
