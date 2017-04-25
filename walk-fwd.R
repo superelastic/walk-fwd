@@ -5,33 +5,37 @@ require(PerformanceAnalytics)
 library(partitions)
 library(iterpc)
 
-getSymbols(c("CWB","JNK","TLT","PCY"), from="2009-08-03", to="2017-03-30")
-returns <- merge(Return.calculate(Ad(CWB)), Return.calculate(Ad(JNK)), join='inner')
-returns <- merge(returns, Return.calculate(Ad(TLT)), join='inner')
-returns <- merge(returns, Return.calculate(Ad(PCY)), join='inner')
+#getSymbols(c("CWB","JNK","TLT","PCY","SHY"), from="2009-08-03", to="2017-04-23")
+#returns <- merge(Return.calculate(Ad(CWB)), Return.calculate(Ad(JNK)), join='inner')
+#returns <- merge(returns, Return.calculate(Ad(TLT)), join='inner')
+#returns <- merge(returns, Return.calculate(Ad(PCY)), join='inner')
+#returns <- merge(returns, Return.calculate(Ad(SHY)), join='inner')
 
-#getSymbols(c("CSD", "VNQ"), from="2009-08-03", to="2017-03-30")
-#df <- read.csv("C:/Users/Russ Fischer/Documents/R/my-projects/walk-fwd/rodenbach_returns.csv", header=TRUE)
-#df2 <- read.csv("C:/Users/Russ Fischer/Documents/R/my-projects/walk-fwd/bondStrat.csv", header=TRUE)
-#returns <- merge(Return.calculate(Ad(CSD)), Return.calculate(Ad(VNQ)), join='inner')
-#returns <- merge(returns, (df$Return), join='inner')
-#returns <- merge(returns, (df2$Return), join='inner')
+getSymbols(c("RSP", "VNQ"), from="2009-09-01", to="2017-04-23")
+df <- read.csv("C:/Users/Russ Fischer/Documents/R/my-projects/walk-fwd/rodenbach_returns.csv", header=TRUE)
+df2 <- read.csv("C:/Users/Russ Fischer/Documents/R/my-projects/walk-fwd/5bondStrat.csv", header=TRUE)
+returns <- merge(Return.calculate(Ad(RSP)), Return.calculate(Ad(VNQ)), join='inner')
+returns <- merge(returns, (df$Return), join='inner')
+returns <- merge(returns, (df2$Return), join='inner')
 
-returns <- returns[-1,]
+returns <- returns[-1,] # drop 1st row
 configs <- list()
 
+# coins problem: need all portfolios of N assets where port weight is discretized
+# 10 discrete levels, 4|5 assets
 C = t(restrictedparts(10,4))/10
 B <- do.call(rbind, lapply(1:nrow(C),function(i) getall(iterpc(table(C[i,]), order=T))))
 
-for(i in 1:286) {
+for(i in 1:286) { # adjust iter limit accord. to num of portfolios
   weight_1 <- B[i,1]
   weight_2 <- B[i,2]
   weight_3 <- B[i,3]
   weight_4 <- B[i,4]
+  #weight_5 <- B[i,5]
   config <- Return.portfolio(R = returns, weights=c(weight_1,weight_2,weight_3,weight_4), rebalance_on = "months")
   configs[[i]] <- config  
 }
-configs <- do.call(cbind, configs)
+configs <- do.call(cbind, configs) # convert list of returns to df?
 cumRets <- cumprod(1+configs)
 period <- 72
 
@@ -56,15 +60,22 @@ configs$zeroes <- 0
 
 # calculate performance
 stratRets <- Return.portfolio(R = configs, weights = weights)
-rbind(table.AnnualizedReturns(stratRets), maxDrawdown(stratRets))
-charts.PerformanceSummary(stratRets[-1:-1200,], ylog=TRUE)
+
+# write returns to file for use in other strategies
+#df.to.print <- data.frame(date=format(strptime(as.character(index(stratRets)), "%Y-%m-%d"), "%m/%d/%Y"), coredata(stratRets))
+#write.csv(df.to.print, "C:\\Users\\Russ Fischer\\Documents\\R\\my-projects\\walk-fwd\\5bondStrat.csv", quote=F, row.names=F)
+
+  rbind(table.AnnualizedReturns(stratRets), maxDrawdown(stratRets))
+#charts.PerformanceSummary(stratRets[-1:-1800,], ylog=TRUE)
+charts.PerformanceSummary(stratRets[,], ylog=TRUE)
 
 # print perf stats
 rbind(table.AnnualizedReturns(stratRets), maxDrawdown(stratRets))
 
 # compare perf to SPY TLT alone
 stratAndComponents <- merge(returns, stratRets, join='inner')
-charts.PerformanceSummary(stratAndComponents[-1:-1200,], ylog=TRUE)
+#charts.PerformanceSummary(stratAndComponents[-1:-1800,], ylog=TRUE)
+charts.PerformanceSummary(stratAndComponents[,], ylog=TRUE)
 rbind(table.AnnualizedReturns(stratAndComponents), maxDrawdown(stratAndComponents))
 
 apply.yearly(stratAndComponents, Return.cumulative)
